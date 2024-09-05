@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WC Subscriptions Recalculate
  * Version: 1.0.0
- * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via a WP-CLI command (`wscs-recalculate`). Verbose by default.
+ * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via a WP-CLI command (`wcs-recalculate`). Verbose by default.
  * Author: ara303 
  * Author URI: http://github.com/ara303
  * Requires at least: 6.0
