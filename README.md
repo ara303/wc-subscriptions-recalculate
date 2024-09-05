@@ -6,8 +6,9 @@ There's two premium plugins to do this but given it's literally like 20 lines of
 I chose to do this via WP-CLI because depending on how many subscriptions you might have it didn't seem right to waste resources running this through the WP-Admin UI, and using WP-CLI makes it a breeze to keep a log of each item that's been updated in case something seems to be wrong.
 
 ## How to
-1. Suggested installation as an [MU-Plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) but you can activate this as a "normal" plugin if you prefer.
-2. SSH into your server (some providers give you a console for this, but for others you might need to set it up manually), navigate to your WP installation directory.
-3. Run the following command:
+1. **Take a backup first.**
+2. Recommended to install as an [MU-Plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) but you can use as normal if you wish.
+3. SSH into your server (some providers give you a console for this, but for others you might need to set it up manually), navigate to your WP installation directory.
+4. Run the following command:
     `wcsr recalculate`
 5. A success message will be shown upon complete recalculation. 🎉
