@@ -7,8 +7,14 @@ I chose to do this via WP-CLI because depending on how many subscriptions you mi
 
 ## How to
 1. **Take a backup first.**
-2. Recommended to install as an [MU-Plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) but you can use as normal if you wish.
-3. SSH into your server (some providers give you a console for this, but for others you might need to set it up manually), navigate to your WP installation directory.
-4. Run the following command:
-    `wcsr recalculate`
-5. A success message will be shown upon complete recalculation. 🎉
+2. Install either as an [MU-Plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) or via regular means if preferred.
+3. SSH into your server (some providers give you a console for this, otherwise do so manually) and navigate to your WP installation directory.
+4. Strongly suggest performing a dry run first to confirm output:
+    ```bash
+    wp wcsr recalculate --dry-run
+    ```
+5. If everything looks right, run it again for real:
+    ```bash
+    wp wcsr recalculate
+    ```
+6. You'll see a message in the terminal telling you upon complete recalculation. 🎉
