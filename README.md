@@ -9,5 +9,5 @@ I chose to do this via WP-CLI because depending on how many subscriptions you mi
 1. Suggested installation as an [MU-Plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) but you can activate this as a "normal" plugin if you prefer.
 2. SSH into your server (some providers give you a console for this, but for others you might need to set it up manually), navigate to your WP installation directory.
 3. Run the following command:
-    `wscr recalculate`
+    `wcsr recalculate`
 5. A success message will be shown upon complete recalculation. 🎉
