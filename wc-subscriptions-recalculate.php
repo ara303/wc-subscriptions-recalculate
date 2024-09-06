@@ -24,7 +24,7 @@ class WC_Subscriptions_Recalculate {
         $subscriptions = get_posts([
             'post_type'   => 'shop_subscription',
             'post_status' => 'wc-active',
-            'numberposts' => -1, // Because I'm running this inside WP-CLI I'm not as worried about suboptimally performing stuff like this!
+            'numberposts' => -1,
         ]);
 
         if( ! $subscriptions ){
@@ -43,37 +43,38 @@ class WC_Subscriptions_Recalculate {
             foreach( $subscription->get_items() as $item_id => $item ){
                 $product_id = $item->get_product_id();
                 $product = wc_get_product( $product_id );
+                $new_product_price = $product->get_price();
 
                 if( ! $product ){
                     WP_CLI::warning( "Product ID {$product_id} not found within subscription ID {$subscription_post->ID}." );
                     continue;
                 }
 
-                $old_price = $item->get_total();
-
-                $new_price_incl_tax = wc_get_price_including_tax( $product );
-                $new_price_excl_tax = wc_get_price_excluding_tax( $product );
-                $tax_option = get_option( 'woocommerce_tax_display_shop' );
-                if( $tax_option === "incl" ){
-                    $new_price = $new_price_incl_tax;
-                } else {
-                    $new_price = $new_price_excl_tax;
-                }
+                $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
+                $taxes = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );                
 
                 if( ! $dry_run ){
+                    $item->set_taxes([
+                        'total'    => $taxes,
+                        'subtotal' => $taxes,
+                    ]);
+
                     $item->set_subtotal( $new_price );
                     $item->set_total( $new_price );
                     $item->save();
 
-                    WP_CLI::log( "Price for subscription ID {$subscription_post->ID} updated to {$new_price} (was {$old_price})." );
+                    $subscription_total += $new_price + array_sum( $taxes );
+
+                    WP_CLI::log( "Price for subscription ID {$subscription_post->ID} updated to {$new_price}." );
                 } else {
-                    WP_CLI::log( "Dry run mode. Price for subscription ID {$subscription_post->ID} WAS NOT updated to {$new_price} (was {$old_price})." );
+                    WP_CLI::log( "Dry run mode. Price for subscription ID {$subscription_post->ID} can be updated to {$new_price}." );
                 }
                     
             }
 
             if( ! $dry_run ){
-                $subscription->calculate_totals();
+                $subscription->set_total( $subscription_total );
+                $subscription->calculate_taxes();
                 $subscription->save();
     
                 WP_CLI::success( "Subscription ID {$subscription_post->ID} updated." );
