@@ -84,4 +84,4 @@ class WC_Subscriptions_Recalculate {
     }
 }
 
-WP_CLI::add_command( "wcsr recalculate", "WC_Subscriptions_Recalculate" );
+WP_CLI::add_command( "wcsr", "WC_Subscriptions_Recalculate" );
