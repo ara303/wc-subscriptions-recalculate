@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: WC Subscriptions Recalculate
- * Version: 1.0.1
+ * Version: 0.0.1-alpha
  * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via a WP-CLI command (`wp wcsr recalculate`).
  * Author: ara303 
  * Author URI: http://github.com/ara303
@@ -43,7 +43,7 @@ class WC_Subscriptions_Recalculate {
             foreach( $subscription->get_items() as $item_id => $item ){
                 $product_id = $item->get_product_id();
                 $product = wc_get_product( $product_id );
-                $new_product_price = $product->get_price();
+                $new_price = $product->get_price();
 
                 if( ! $product ){
                     WP_CLI::warning( "Product ID {$product_id} not found within subscription ID {$subscription_post->ID}." );
