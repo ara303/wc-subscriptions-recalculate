@@ -65,18 +65,14 @@ class WC_Subscriptions_Recalculate {
                 $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
                 $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );                
 
-                $item->set_taxes([
-                    'total'    => $taxes,
-                    'subtotal' => $taxes,
-                ]);
-
-                $item->set_subtotal( $new_price );
-                $item->set_total( $new_price );
-                $item->save();
-
                 $subscription_total += $new_price + array_sum( $taxes );
 
                 if( ! $dry_run ){
+                    $item->set_taxes([
+                        'total'    => $taxes,
+                        'subtotal' => $taxes,
+                    ]);
+
                     $item->set_subtotal( $new_price );
                     $item->set_total( $new_price );
                     $item->save();
