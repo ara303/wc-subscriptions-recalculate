@@ -92,7 +92,7 @@ class WC_Subscriptions_Recalculate {
             $count++;
         }
 
-        WP_CLI::success( "Successfully reclaculated {$total} subscriptions!" );
+        WP_CLI::success( "Successfully recalculated {$total} subscriptions!" );
     }
 }
 
