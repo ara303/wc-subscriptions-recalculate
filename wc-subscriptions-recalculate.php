@@ -15,17 +15,22 @@ if ( ! defined( 'WP_CLI' ) ) {
 
 class WC_Subscriptions_Recalculate {
     public function recalculate( $args, $assoc_args ) {
+        $subscription_id = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
         $dry_run = isset( $assoc_args['dry-run'] ) ?: false;
         
         if( ! class_exists( 'WC_Subscriptions' ) ){
             WP_CLI::error( "WooCommerce Subscriptions is not active." );
         }
 
-        $subscriptions = get_posts([
-            'post_type'   => 'shop_subscription',
-            'post_status' => 'wc-active',
-            'numberposts' => -1,
-        ]);
+        if( $subscription_id ) {
+            $subscriptions = [ wcs_get_subscription( $subscription_id ) ];
+        } else {
+            $subscriptions = get_posts([
+                'post_type'   => 'shop_subscription',
+                'post_status' => 'wc-active',
+                'numberposts' => -1,
+            ]);
+        }
 
         if( ! $subscriptions ){
             WP_CLI::success( "No active subscriptions found." );
@@ -38,6 +43,10 @@ class WC_Subscriptions_Recalculate {
             if( ! $subscription ){
                 WP_CLI::warning( "Subscription ID {$subscription_post->ID} not found." );
                 continue;
+            }
+
+            if( $subscription_id ){
+                WP_CLI::log( "Single mode (only operating on for scription ID {$subscription_id})." );
             }
 
             foreach( $subscription->get_items() as $item_id => $item ){
@@ -67,7 +76,7 @@ class WC_Subscriptions_Recalculate {
 
                     WP_CLI::log( "Price for subscription ID {$subscription_post->ID} updated to {$new_price}." );
                 } else {
-                    WP_CLI::log( "Dry run mode. Price for subscription ID {$subscription_post->ID} can be updated to {$new_price}." );
+                    WP_CLI::log( "-- Dry run -- Price for subscription ID {$subscription_post->ID} updated to {$new_price}." );
                 }
                     
             }
