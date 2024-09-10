@@ -37,22 +37,25 @@ class WC_Subscriptions_Recalculate {
             return;
         }
 
+        $count = 1;
+        $total = count( $subscriptions );
+
         foreach( $subscriptions as $subscription_post ){
             $subscription = wcs_get_subscription( $subscription_post->ID );
+
+            if( $dry_run ){
+                WP_CLI::log( "Dry run: No changes will be written to the database." );
+            }
 
             if( ! $subscription ){
                 WP_CLI::warning( "Subscription ID {$subscription_post->ID} not found." );
                 continue;
             }
 
-            if( $subscription_id ){
-                WP_CLI::log( "Single mode (only operating on for scription ID {$subscription_id})." );
-            }
-
             foreach( $subscription->get_items() as $item_id => $item ){
                 $product_id = $item->get_product_id();
-                $product = wc_get_product( $product_id );
-                $new_price = $product->get_price();
+                $product    = wc_get_product( $product_id );
+                $new_price  = $product->get_price();
 
                 if( ! $product ){
                     WP_CLI::warning( "Product ID {$product_id} not found within subscription ID {$subscription_post->ID}." );
@@ -60,37 +63,40 @@ class WC_Subscriptions_Recalculate {
                 }
 
                 $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
-                $taxes = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );                
+                $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );                
+
+                $item->set_taxes([
+                    'total'    => $taxes,
+                    'subtotal' => $taxes,
+                ]);
+
+                $item->set_subtotal( $new_price );
+                $item->set_total( $new_price );
+                $item->save();
+
+                $subscription_total += $new_price + array_sum( $taxes );
 
                 if( ! $dry_run ){
-                    $item->set_taxes([
-                        'total'    => $taxes,
-                        'subtotal' => $taxes,
-                    ]);
-
                     $item->set_subtotal( $new_price );
                     $item->set_total( $new_price );
                     $item->save();
-
-                    $subscription_total += $new_price + array_sum( $taxes );
-
-                    WP_CLI::log( "Price for subscription ID {$subscription_post->ID} updated to {$new_price}." );
-                } else {
-                    WP_CLI::log( "-- Dry run -- Price for subscription ID {$subscription_post->ID} updated to {$new_price}." );
                 }
-                    
+
+                WP_CLI::log( "Item price set to {$new_price} for subscription ID {$subscription_post->ID}." );
             }
 
             if( ! $dry_run ){
                 $subscription->set_total( $subscription_total );
                 $subscription->calculate_taxes();
                 $subscription->save();
-    
-                WP_CLI::success( "Subscription ID {$subscription_post->ID} updated." );
             }
+
+            WP_CLI::log( "{$count} of {$total}: Subscription ID {$subscription_post->ID} updated." );
+
+            $count++;
         }
 
-        WP_CLI::success( "WooCommmerce Subscriptions Recalculate ran successfully!" );
+        WP_CLI::success( "Successfully reclaculated {$total} subscriptions!" );
     }
 }
 
