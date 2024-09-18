@@ -18,7 +18,7 @@ I do this through WP-CLI because depending on how many subscriptions you might h
 ```
 wp wcsr backup
 ```
-Does not need any parameters. A SQL dump of subscription rows (across `wp_posts`, `wp_post_meta`, `woocommerce_order_items`, and `woocommerce_order_itemmeta`) is assembled into a file prefixed `wcsr_backup_<dd-mm-yy_hh-mm-ss>.sql` in your WP content directory (usually `/wp-content`).
+Create an SQL dump of subscriptions which may be affected (across `wp_posts`, `wp_post_meta`, `woocommerce_order_items`, and `woocommerce_order_itemmeta`). A file named `wcsr_backup_<dd-mm-yy_hh-mm-ss>.sql` will be created in your WP content directory (normally `/wp-content/`).
 
 ### `restore`
 ```
@@ -26,16 +26,17 @@ wp wcsr restore --file=<file>
 ```
 
 ##### `--file=<file>`
-> **Required.** Specify a particular backup file to restore from. If omitted, the most recent backup will be used.
+**Required.** Specify the SQL dump of subscriptions that will be restored.
 * Type: string
 
 ### `recalculate`
 ```
 wp wcsr recalculate [--dry-run] [--id=<subscription_id>]
 ```
+Update the active WC Subscriptions subscriptions which have changed in price, taking into account VAT/tax if in use.
 
 ##### `--dry-run`
-> Perform a dry run without writing changes to the database (you may find this useful if you want to test if your store's VAT/tax settings are correctly applied here).
+Perform a dry run without writing changes to the database (you may find this useful if you want to test if your store's VAT/tax settings are correctly applied here).
 * Type: boolean
 * Default: false
 
