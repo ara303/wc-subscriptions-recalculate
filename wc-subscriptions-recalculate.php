@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: WC Subscriptions Recalculate with Backup
+ * Plugin Name: WC Subscriptions Recalculate
  * Version: 0.2
  * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via WP-CLI commands.
  * Author: ara303
