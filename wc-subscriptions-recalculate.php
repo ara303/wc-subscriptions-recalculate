@@ -20,12 +20,12 @@ class WC_Subscriptions_Recalculate {
     }
 
     private function get_subscriptions( $subscription_id = false ){
-        if( $subscription_id ){ 
-            $subscriptions = wcs_get_subscription( $subscription_id );
+        if( $subscription_id ){
+            $subscriptions = [ wcs_get_subscription( $subscription_id ) ];
         } else {
             $subscriptions = wcs_get_subscriptions([
                 'subscriptions_per_page' => -1,
-                'subscription_status'    => 'active',
+                // 'subscription_status'    => 'active',
             ]);
         }
 
@@ -39,22 +39,23 @@ class WC_Subscriptions_Recalculate {
 
     public function recalculate( $args, $assoc_args ) {
         $subscription_id = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
-        $dry_run = isset( $assoc_args['dry-run'] ) ?: false;
+        $dry_run         = isset( $assoc_args['dry-run'] ) ?: false;
 
         $subscriptions = $this->get_subscriptions( $subscription_id );
 
         $count = 1;
         $total = count( $subscriptions );
 
-        foreach( $subscriptions as $subscription_post ){
-            $subscription = wcs_get_subscription( $subscription_post->ID );
+        foreach( $subscriptions as $subscription ){
+            $subscription_id = $subscription->get_id();
+            $subscription    = wcs_get_subscription( $subscription_id );
 
             if( $dry_run ){
                 WP_CLI::log( "Dry run: No changes will be written to the database." );
             }
 
             if( ! $subscription ){
-                WP_CLI::warning( "Subscription ID {$subscription_post->ID} not found." );
+                WP_CLI::warning( "Subscription ID {$$subscription_id} not found." );
                 continue;
             }
 
@@ -66,12 +67,12 @@ class WC_Subscriptions_Recalculate {
                 $new_price  = $product->get_price();
 
                 if( ! $product ){
-                    WP_CLI::warning( "Product ID {$product_id} not found within subscription ID {$subscription_post->ID}." );
+                    WP_CLI::warning( "Product ID {$product_id} not found within subscription ID {$subscription_id}." );
                     continue;
                 }
 
                 $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
-                $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );                
+                $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );
 
                 $subscription_total += $new_price + array_sum( $taxes );
 
@@ -86,7 +87,7 @@ class WC_Subscriptions_Recalculate {
                     $item->save();
                 }
 
-                WP_CLI::log( "Item price set to {$new_price} for subscription ID {$subscription_post->ID}." );
+                WP_CLI::log( "Item price set to {$new_price} for subscription ID {$subscription_id}." );
             }
 
             if( ! $dry_run ){
@@ -95,7 +96,7 @@ class WC_Subscriptions_Recalculate {
                 $subscription->save();
             }
 
-            WP_CLI::log( "{$count} of {$total}: Subscription ID {$subscription_post->ID} updated." );
+            WP_CLI::log( "{$count} of {$total}: Subscription ID {$subscription_id} updated." );
 
             $count++;
         }
@@ -112,9 +113,9 @@ class WC_Subscriptions_Recalculate {
 
         $dump = "";
 
-        foreach( $subscriptions as $subscription_post ){
-            $subscription_id = $subscription_post->ID;
-            
+        foreach( $subscriptions as $subscription ){
+            $subscription_id = $subscription->get_id();
+
             $posts_row = $wpdb->get_row( "SELECT * FROM {$wpdb->posts} WHERE ID = {$subscription_id}", ARRAY_A );
             $dump .= $this->create_insert_query( $wpdb->posts, $posts_row );
 
