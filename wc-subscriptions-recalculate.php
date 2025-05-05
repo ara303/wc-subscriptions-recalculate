@@ -55,7 +55,7 @@ class WC_Subscriptions_Recalculate {
             }
 
             if( ! $subscription ){
-                WP_CLI::warning( "Subscription ID {$$subscription_id} not found." );
+                WP_CLI::warning( "Subscription ID {$subscription_id} not found." );
                 continue;
             }
 
