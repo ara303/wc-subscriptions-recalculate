@@ -19,13 +19,13 @@ class WC_Subscriptions_Recalculate {
         $this->backup_file = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'wcsr_backup_' . date('Y-m-d_H-i-s') . '.sql';
     }
 
-    private function get_subscriptions( $subscription_id = false ){
+    private function get_subscriptions( $subscription_id = false, $subscription_status ){
         if( $subscription_id ){
-            $subscriptions = [ wcs_get_subscription( $subscription_id ) ];
+            $subscriptions = array( wcs_get_subscription( $subscription_id ) );
         } else {
             $subscriptions = wcs_get_subscriptions([
                 'subscriptions_per_page' => -1,
-                // 'subscription_status'    => 'active',
+                'subscription_status'    => $subscription_status,
             ]);
         }
 
@@ -38,24 +38,30 @@ class WC_Subscriptions_Recalculate {
     }
 
     public function recalculate( $args, $assoc_args ) {
-        $subscription_id = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
-        $dry_run         = isset( $assoc_args['dry-run'] ) ?: false;
+        $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
+        $subscription_status = isset( $assoc_args['status'] ) ?: 'any';
+        $dry_run             = isset( $assoc_args['dry-run'] ) ?: false;
 
-        $subscriptions = $this->get_subscriptions( $subscription_id );
+        if( ! in_array( $subscription_status, ['any', 'active', 'cancelled', 'suspended', 'expired', 'pending', 'trash'], true ) ){
+            WP_CLI:error( "Invalid subscription status given: {$subscription_status}." );
+            return;
+        }
+
+        $subscriptions = $this->get_subscriptions( $subscription_id, $subscription_status );
 
         $count = 1;
         $total = count( $subscriptions );
+
+        if( $dry_run ){
+            WP_CLI::log( "----------------------------------------------------\r\nDry run: No changes will be written to the database.\r\n----------------------------------------------------" );
+        }
 
         foreach( $subscriptions as $subscription ){
             $subscription_id = $subscription->get_id();
             $subscription    = wcs_get_subscription( $subscription_id );
 
-            if( $dry_run ){
-                WP_CLI::log( "Dry run: No changes will be written to the database." );
-            }
-
             if( ! $subscription ){
-                WP_CLI::warning( "Subscription ID {$subscription_id} not found." );
+                WP_CLI::error( "No subscription found: {$subscription_id}." );
                 continue;
             }
 
@@ -67,7 +73,7 @@ class WC_Subscriptions_Recalculate {
                 $new_price  = $product->get_price();
 
                 if( ! $product ){
-                    WP_CLI::warning( "Product ID {$product_id} not found within subscription ID {$subscription_id}." );
+                    WP_CLI::warning( "No product found within subscription ID: {$subscription_id}." );
                     continue;
                 }
 
@@ -101,7 +107,7 @@ class WC_Subscriptions_Recalculate {
             $count++;
         }
 
-        WP_CLI::success( "Successfully recalculated {$total} subscriptions!" );
+        WP_CLI::success( "Successfully recalculated {$total} subscription(s)!" );
     }
 
     public function backup( $args, $assoc_args ){
