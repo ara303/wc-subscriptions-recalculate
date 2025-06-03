@@ -68,19 +68,22 @@ class WC_Subscriptions_Recalculate {
             $subscription_total = 0;
 
             foreach( $subscription->get_items() as $item_id => $item ){
+                $item_price = $item->get_price();
+                WP_CLI::log( "Item price: {$item_price}." );
+                
                 $product_id = $item->get_product_id();
                 $product    = wc_get_product( $product_id );
-                $new_price  = $product->get_price();
-
+                
                 if( ! $product ){
                     WP_CLI::warning( "No product found within subscription ID: {$subscription_id}." );
                     continue;
                 }
 
+                $price     = $product->get_price();
                 $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
-                $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );
+                $taxes     = WC_Tax::calc_tax( $price, $tax_rates, wc_prices_include_tax() );
 
-                $subscription_total += $new_price + array_sum( $taxes );
+                $subscription_total += $price + array_sum( $taxes );
 
                 if( ! $dry_run ){
                     $item->set_taxes([
@@ -88,12 +91,12 @@ class WC_Subscriptions_Recalculate {
                         'subtotal' => $taxes,
                     ]);
 
-                    $item->set_subtotal( $new_price );
-                    $item->set_total( $new_price );
+                    $item->set_subtotal( $price );
+                    $item->set_total( $price );
                     $item->save();
                 }
 
-                WP_CLI::log( "Item price set to {$new_price} for subscription ID {$subscription_id}." );
+                WP_CLI::log( "Price set to {$price} for subscription ID {$subscription_id}." );
             }
 
             if( ! $dry_run ){
