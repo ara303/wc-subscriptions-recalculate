@@ -53,11 +53,6 @@ class WC_Subscriptions_Recalculate {
             $subscription_id = $subscription->get_id();
             $subscription    = wcs_get_subscription( $subscription_id );
 
-            if( ! $subscription ){
-                WP_CLI::error( "No subscription found: {$subscription_id}." );
-                continue;
-            }
-
             foreach( $subscription->get_items() as $item ){
                 $product = wc_get_product( $item->get_product_id() );
                 
