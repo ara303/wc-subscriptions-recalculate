@@ -39,22 +39,15 @@ class WC_Subscriptions_Recalculate {
 
     public function recalculate( $args, $assoc_args ) {
         $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
-        $subscription_status = isset( $assoc_args['status'] ) ?: 'any';
+        $subscription_status = isset( $assoc_args['status'] ) ? $assoc_args['status'] : 'any';
         $dry_run             = isset( $assoc_args['dry-run'] ) ?: false;
 
         if( ! in_array( $subscription_status, ['any', 'active', 'cancelled', 'suspended', 'expired', 'pending', 'trash'], true ) ){
-            WP_CLI:error( "Invalid subscription status given: {$subscription_status}." );
+            WP_CLI::error( "Invalid subscription status: {$subscription_status}." );
             return;
         }
 
         $subscriptions = $this->get_subscriptions( $subscription_id, $subscription_status );
-
-        $count = 1;
-        $total = count( $subscriptions );
-
-        if( $dry_run ){
-            WP_CLI::log( "----------------------------------------------------\r\nDry run: No changes will be written to the database.\r\n----------------------------------------------------" );
-        }
 
         foreach( $subscriptions as $subscription ){
             $subscription_id = $subscription->get_id();
@@ -65,52 +58,46 @@ class WC_Subscriptions_Recalculate {
                 continue;
             }
 
-            $subscription_total = 0;
-
-            foreach( $subscription->get_items() as $item_id => $item ){
-                $item_price = $item->get_price();
-                WP_CLI::log( "Item price: {$item_price}." );
-                
-                $product_id = $item->get_product_id();
-                $product    = wc_get_product( $product_id );
+            foreach( $subscription->get_items() as $item ){
+                $product = wc_get_product( $item->get_product_id() );
                 
                 if( ! $product ){
-                    WP_CLI::warning( "No product found within subscription ID: {$subscription_id}." );
+                    WP_CLI::warning( "No products found for subscription ID: {$subscription_id}." );
                     continue;
                 }
 
-                $price     = $product->get_price();
-                $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
-                $taxes     = WC_Tax::calc_tax( $price, $tax_rates, wc_prices_include_tax() );
+                $old_price = $item->get_subtotal();
+                $new_price = $product->get_price();
+                $different = $old_price !== $new_price;
 
-                $subscription_total += $price + array_sum( $taxes );
+                if( ! $different ){
+                    WP_CLI::log( "#{$subscription_id}: No difference in price." );
+                    continue;
+                }
+
+                $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
+                $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );
+                $new_price + array_sum( $taxes );
 
                 if( ! $dry_run ){
                     $item->set_taxes([
                         'total'    => $taxes,
-                        'subtotal' => $taxes,
+                        'subtotal' => $taxes
                     ]);
-
-                    $item->set_subtotal( $price );
-                    $item->set_total( $price );
+                    $item->set_subtotal( $new_price );
+                    $item->set_total( $new_price );
                     $item->save();
+
+                    $subscription->set_total( $new_price );
+                    $subscription->calculate_taxes();
+                    $subscription->save();
                 }
 
-                WP_CLI::log( "Price set to {$price} for subscription ID {$subscription_id}." );
+                WP_CLI::log( "#{$subscription_id}: Total {$old_price} -> {$new_price}." );
             }
-
-            if( ! $dry_run ){
-                $subscription->set_total( $subscription_total );
-                $subscription->calculate_taxes();
-                $subscription->save();
-            }
-
-            WP_CLI::log( "{$count} of {$total}: Subscription ID {$subscription_id} updated." );
-
-            $count++;
         }
-
-        WP_CLI::success( "Successfully recalculated {$total} subscription(s)!" );
+        
+        WP_CLI::success( "Completed" . ( $dry_run ? ' but --dry-run flag means no changes were made' : '' ) . "." );
     }
 
     public function backup( $args, $assoc_args ){
