@@ -19,7 +19,7 @@ class WC_Subscriptions_Recalculate {
         $this->backup_file = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'wcsr_backup_' . date('Y-m-d_H-i-s') . '.sql';
     }
 
-    private function get_subscriptions( $subscription_id = false, $subscription_status ){
+    private function get_subscriptions( $subscription_id, $subscription_status ){
         if( $subscription_id ){
             $subscriptions = array( wcs_get_subscription( $subscription_id ) );
         } else {
