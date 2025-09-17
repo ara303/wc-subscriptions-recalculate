@@ -1,12 +1,11 @@
 <?php
 /**
  * Plugin Name: WC Subscriptions Recalculate
- * Version: 1.030625
+ * Version: 1.180925
  * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via WP-CLI commands.
  * Author: ara303
  * Author URI: http://github.com/ara303
- * Requires at least: 6.0
- * Tested up to: 6.6.1
+ * Tested up to: 6.8.2
  */
 if ( ! defined( 'WP_CLI' ) ) {
     return;
@@ -96,9 +95,15 @@ class WC_Subscriptions_Recalculate {
     }
 
     public function backup( $args, $assoc_args ){
-        $subscription_id = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
+        $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
+        $subscription_status = isset( $assoc_args['status'] ) ? $assoc_args['status'] : 'any';
 
-        $subscriptions = $this->get_subscriptions( $subscription_id );
+        if( ! in_array( $subscription_status, ['any', 'active', 'cancelled', 'suspended', 'expired', 'pending', 'trash'], true ) ){
+            WP_CLI::error( "Invalid subscription status: {$subscription_status}." );
+            return;
+        }
+
+        $subscriptions = $this->get_subscriptions( $subscription_id, $subscription_status );
 
         global $wpdb;
 

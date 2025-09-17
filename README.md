@@ -16,35 +16,50 @@ I do this through WP-CLI because depending on how many subscriptions you might h
 
 ### `backup`
 ```
-wp wcsr backup
+wp wcsr backup [--status=<subscription_status>]
 ```
 
 > [!CAUTION]
  This and `restore` work on databases of a relatively large size (~100 MB), but may not for much larger databases if you have thousands (or even more) subscriptions. **As a just-in-case precaution,** also run the WP-CLI commands to [export](https://developer.wordpress.org/cli/commands/db/export/) and [import](https://developer.wordpress.org/cli/commands/db/import/) databases in entirety.
 
-Create an SQL dump of subscriptions which may be affected (across `wp_posts`, `wp_post_meta`, `woocommerce_order_items`, and `woocommerce_order_itemmeta`). A file named `wcsr_backup_<dd-mm-yy_hh-mm-ss>.sql` will be created in your WP content directory (normally `/wp-content/`).
+Create an SQL dump of subscriptions which may be affected across `wp_posts`, `wp_post_meta`, `woocommerce_order_items`, and `woocommerce_order_itemmeta`. A file named `wcsr_backup_<dd-mm-yy_hh-mm-ss>.sql` will be created in your WP content directory (normally `/wp-content/`).
+
+##### `--status=<subscription_status>`
+> Specify a subscription status. If omitted, all subscriptions are processed. See [WooCommerce Subscrptions documentation](https://woocommerce.com/document/subscriptions/develop/action-reference/#subscription-status-change-actions) for valid subscription statuses to use.
+* Type: string
+* Default: `any`
 
 ### `restore`
 ```
-wp wcsr restore --file=<file>
+wp wcsr restore --file=<file> [--delete]
 ```
 
 ##### `--file=<file>`
 **Required.** Specify the SQL dump of subscriptions that will be restored.
 * Type: string
 
+##### `--delete`
+Deletes the file once restored from. Note: Does not confirm successful restoration in case of database issue or other error.
+* Type: boolean
+* Default: unset
+
 ### `recalculate`
 ```
-wp wcsr recalculate [--dry-run] [--id=<subscription_id>]
+wp wcsr recalculate [--dry-run] [--id=<subscription_id>] [--status=<subscription_status>]
 ```
 Update the active WC Subscriptions subscriptions which have changed in price, taking into account VAT/tax if in use.
 
 ##### `--dry-run`
 Perform a dry run without writing changes to the database (you may find this useful if you want to test if your store's VAT/tax settings are correctly applied here).
 * Type: boolean
-* Default: false
+* Default: unset
 
 ##### `--id=<subscription_id>`
-> Specify a single subscription ID to recalculate. If omitted, process all active subscriptions.
+> Specify a single subscription ID. If omitted, all subscriptions (observing `--status` if set) are processed.
 * Type: integer
 * Default: null
+
+##### `--status=<subscription_status>`
+> Specify a single subscription status. If omitted, all subscriptions are processed. See [WooCommerce Subscrptions documentation](https://woocommerce.com/document/subscriptions/develop/action-reference/#subscription-status-change-actions) for valid subscription statuses to use.
+* Type: string
+* Default: `any`
