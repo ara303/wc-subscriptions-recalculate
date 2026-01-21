@@ -18,6 +18,13 @@ class WC_Subscriptions_Recalculate {
         $this->backup_file = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'wcsr_backup_' . date('Y-m-d_H-i-s') . '.sql';
     }
 
+    /**
+     * Get subscriptions based on ID or status filter.
+     *
+     * @param int|false $subscription_id Specific subscription ID or false for all
+     * @param string $subscription_status Subscription status filter
+     * @return array Array of subscription objects
+     */
     private function get_subscriptions( $subscription_id, $subscription_status ){
         if( $subscription_id ){
             $subscriptions = array( wcs_get_subscription( $subscription_id ) );
@@ -36,7 +43,37 @@ class WC_Subscriptions_Recalculate {
         return $subscriptions;
     }
 
-    public function recalculate( $args, $assoc_args ) {
+    /**
+     * Update subscription prices to match current product prices.
+     *
+     * ## OPTIONS
+     *
+     * [--dry-run]
+     * : Preview changes without writing to database.
+     *
+     * [--id=<subscription_id>]
+     * : Update a specific subscription by ID.
+     *
+     * [--status=<subscription_status>]
+     * : Filter subscriptions by status (any, active, cancelled, suspended, expired, pending, trash).
+     * ---
+     * default: any
+     * ---
+     *
+     * ## EXAMPLES
+     *
+     *     # Update all active subscriptions
+     *     wp wcsr update --status=active
+     *
+     *     # Preview changes for all subscriptions
+     *     wp wcsr update --dry-run
+     *
+     *     # Update a specific subscription
+     *     wp wcsr update --id=123
+     *
+     * @when after_wp_load
+     */
+    public function update( $args, $assoc_args ) {
         $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
         $subscription_status = isset( $assoc_args['status'] ) ? $assoc_args['status'] : 'any';
         $dry_run             = isset( $assoc_args['dry-run'] ) ?: false;
@@ -94,7 +131,34 @@ class WC_Subscriptions_Recalculate {
         WP_CLI::success( "Completed" . ( $dry_run ? ' but --dry-run flag means no changes were made' : '' ) . "." );
     }
 
-    public function backup( $args, $assoc_args ){
+    /**
+     * Create a backup of subscription data.
+     *
+     * ## OPTIONS
+     *
+     * [--id=<subscription_id>]
+     * : Backup a specific subscription by ID.
+     *
+     * [--status=<subscription_status>]
+     * : Filter subscriptions by status (any, active, cancelled, suspended, expired, pending, trash).
+     * ---
+     * default: any
+     * ---
+     *
+     * ## EXAMPLES
+     *
+     *     # Backup all subscriptions
+     *     wp wcsr create
+     *
+     *     # Backup only active subscriptions
+     *     wp wcsr create --status=active
+     *
+     *     # Backup a specific subscription
+     *     wp wcsr create --id=123
+     *
+     * @when after_wp_load
+     */
+    public function create( $args, $assoc_args ){
         $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
         $subscription_status = isset( $assoc_args['status'] ) ? $assoc_args['status'] : 'any';
 
@@ -137,6 +201,13 @@ class WC_Subscriptions_Recalculate {
         WP_CLI::log( "Succesfully created dump of affected rows at: " . $this->backup_file );
     }
 
+    /**
+     * Create SQL INSERT query for a table row.
+     *
+     * @param string $table Table name
+     * @param array $data Row data as associative array
+     * @return string SQL INSERT query
+     */
     private function create_insert_query( $table, $data ){
         global $wpdb;
         $fields = implode( ', ', array_keys( $data ) );
@@ -146,6 +217,27 @@ class WC_Subscriptions_Recalculate {
         return "INSERT INTO `{$table}` ({$fields}) VALUES ({$values});\n";
     }
 
+    /**
+     * Restore subscription data from a backup file.
+     *
+     * ## OPTIONS
+     *
+     * --file=<filename>
+     * : Backup filename (located in wp-content directory).
+     *
+     * [--delete]
+     * : Delete the backup file after successful restoration.
+     *
+     * ## EXAMPLES
+     *
+     *     # Restore from backup
+     *     wp wcsr restore --file=wcsr_backup_2024-01-20_10-30-00.sql
+     *
+     *     # Restore and delete backup file
+     *     wp wcsr restore --file=wcsr_backup_2024-01-20_10-30-00.sql --delete
+     *
+     * @when after_wp_load
+     */
     public function restore( $args, $assoc_args ){
         $file = $assoc_args['file'];
         if( isset( $file ) ){
@@ -181,6 +273,11 @@ class WC_Subscriptions_Recalculate {
 }
 
 $wcsr = new WC_Subscriptions_Recalculate();
-WP_CLI::add_command("wcsr recalculate", [$wcsr, 'recalculate']);
-WP_CLI::add_command("wcsr backup", [$wcsr, 'backup']);
-WP_CLI::add_command("wcsr restore", [$wcsr, 'restore']);
+// Register CRUD commands with WordPress-native terminology
+WP_CLI::add_command("wcsr update", [$wcsr, 'update']);     // Update operation (formerly 'recalculate')
+WP_CLI::add_command("wcsr create", [$wcsr, 'create']);     // Create operation (formerly 'backup')
+WP_CLI::add_command("wcsr restore", [$wcsr, 'restore']);   // Restore operation (specialized - restores from backup)
+
+// Maintain backward compatibility with legacy command names
+WP_CLI::add_command("wcsr recalculate", [$wcsr, 'update']);
+WP_CLI::add_command("wcsr backup", [$wcsr, 'create']);
