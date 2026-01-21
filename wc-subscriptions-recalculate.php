@@ -216,7 +216,7 @@ class WC_Subscriptions_Recalculate {
         // Write backup to file
         file_put_contents( $this->backup_file, $dump );
 
-        WP_CLI::log( "Succesfully created dump of affected rows at: " . $this->backup_file );
+        WP_CLI::log( "Successfully created dump of affected rows at: " . $this->backup_file );
     }
 
     /**
