@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WC Subscriptions Recalculate
  * Version: 1.180925
- * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via WP-CLI commands using standard WordPress CRUD terminology.
+ * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via WP-CLI commands.
  * Author: ara303
  * Author URI: http://github.com/ara303
  * Tested up to: 6.8.2
@@ -296,11 +296,8 @@ class WC_Subscriptions_Recalculate {
 }
 
 $wcsr = new WC_Subscriptions_Recalculate();
-// Register CRUD commands with WordPress-native terminology
-WP_CLI::add_command("wcsr update", [$wcsr, 'update']);     // Update operation (formerly 'recalculate')
-WP_CLI::add_command("wcsr create", [$wcsr, 'create']);     // Create operation (formerly 'backup')
-WP_CLI::add_command("wcsr restore", [$wcsr, 'restore']);   // Restore operation (specialized - restores from backup)
-
-// Maintain backward compatibility with legacy command names
+WP_CLI::add_command("wcsr update", [$wcsr, 'update']);
+WP_CLI::add_command("wcsr create", [$wcsr, 'create']);
+WP_CLI::add_command("wcsr restore", [$wcsr, 'restore']);
 WP_CLI::add_command("wcsr recalculate", [$wcsr, 'update']);
 WP_CLI::add_command("wcsr backup", [$wcsr, 'create']);
