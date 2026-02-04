@@ -67,6 +67,19 @@ class WC_Subscriptions_Recalculate {
      *   - pending
      *   - trash
      * ---
+     * 
+     * [--format=<format>]
+     * : Render output in a particular format.
+     * ---
+     * default: table
+     * options:
+     *   - table
+     *   - json
+     *   - csv
+     *   - yaml
+     *   - ids
+     *   - count
+     * ---
      *
      * ## EXAMPLES
      *
@@ -82,6 +95,7 @@ class WC_Subscriptions_Recalculate {
      * @when after_wp_load
      */
     public function update( $args, $assoc_args ) {
+        $format              = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table'; 
         $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
         $subscription_status = isset( $assoc_args['status'] ) ? $assoc_args['status'] : 'any';
         $dry_run             = isset( $assoc_args['dry-run'] ) ?: false;
@@ -92,6 +106,8 @@ class WC_Subscriptions_Recalculate {
         }
 
         $subscriptions = $this->get_subscriptions( $subscription_id, $subscription_status );
+
+        $rows = [];
 
         foreach( $subscriptions as $subscription ){
             $subscription_id = $subscription->get_id();
@@ -107,10 +123,8 @@ class WC_Subscriptions_Recalculate {
 
                 $old_price = $item->get_subtotal();
                 $new_price = $product->get_price();
-                $different = $old_price !== $new_price;
 
-                if( ! $different ){
-                    WP_CLI::log( "#{$subscription_id}: No difference in price." );
+                if( $old_price == $new_price ){
                     continue;
                 }
 
@@ -132,9 +146,15 @@ class WC_Subscriptions_Recalculate {
                     $subscription->save();
                 }
 
-                WP_CLI::log( "#{$subscription_id}: Total {$old_price} -> {$new_price}." );
+                $rows[] = [
+                    'subscription_id' => $subscription_id,
+                    'old_price'       => $old_price,
+                    'new_price'       => $new_price
+                ];
             }
         }
+
+        WP_CLI\Utils\format_items( $format, $rows, ['subscription_id', 'old_price', 'new_price'] );
         
         WP_CLI::success( "Completed" . ( $dry_run ? ' but --dry-run flag means no changes were made' : '' ) . "." );
     }
