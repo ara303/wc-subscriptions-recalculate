@@ -97,13 +97,12 @@ class WC_Subscriptions_Recalculate {
     public function update( $args, $assoc_args ) {
         $subscription_id     = \WP_CLI\Utils\get_flag_value( $assoc_args, 'id', null );
         $subscription_status = \WP_CLI\Utils\get_flag_value( $assoc_args, 'status', 'any' );
-        
         $format              = \WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' );
         $dry_run             = \WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
 
         $subscriptions = $this->get_subscriptions( $subscription_id, $subscription_status );
 
-        $rows = [];
+        $items = [];
 
         foreach( $subscriptions as $subscription ){
             $subscription_id = $subscription->get_id();
@@ -142,7 +141,7 @@ class WC_Subscriptions_Recalculate {
                     $subscription->save();
                 }
 
-                $rows[] = [
+                $items[] = [
                     'subscription_id' => $subscription_id,
                     'old_price'       => $old_price,
                     'new_price'       => $new_price
@@ -150,7 +149,7 @@ class WC_Subscriptions_Recalculate {
             }
         }
 
-        WP_CLI\Utils\format_items( $format, $rows, ['subscription_id', 'old_price', 'new_price'] );
+        WP_CLI\Utils\format_items( $format, $items, ['subscription_id', 'old_price', 'new_price'] );
         
         WP_CLI::success( "Completed" . ( $dry_run ? ' but --dry-run flag means no changes were made' : '' ) . "." );
     }
