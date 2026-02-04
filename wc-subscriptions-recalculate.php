@@ -43,36 +43,44 @@ class WC_Subscriptions_Recalculate {
         return $subscriptions;
     }
 
-    /**
-     * Update subscription prices to match current product prices.
-     *
-     * ## OPTIONS
-     *
-     * [--dry-run]
-     * : Preview changes without writing to database.
-     *
-     * [--id=<subscription_id>]
-     * : Update a specific subscription by ID.
-     *
-     * [--status=<subscription_status>]
-     * : Filter subscriptions by status (any, active, cancelled, suspended, expired, pending, trash).
-     * ---
-     * default: any
-     * ---
-     *
-     * ## EXAMPLES
-     *
-     *     # Update all active subscriptions
-     *     wp wcsr update --status=active
-     *
-     *     # Preview changes for all subscriptions
-     *     wp wcsr update --dry-run
-     *
-     *     # Update a specific subscription
-     *     wp wcsr update --id=123
-     *
-     * @when after_wp_load
-     */
+/**
+ * Update subscription prices to match current product prices.
+ *
+ * ## OPTIONS
+ *
+ * [--dry-run]
+ * : Preview changes without writing to database.
+ *
+ * [--id=<subscription_id>]
+ * : Update a specific subscription by ID.
+ *
+ * [--status=<subscription_status>]
+ * : Filter subscriptions by status.
+ * ---
+ * default: any
+ * options:
+ *   - any
+ *   - active
+ *   - cancelled
+ *   - suspended
+ *   - expired
+ *   - pending
+ *   - trash
+ * ---
+ *
+ * ## EXAMPLES
+ *
+ *     # Update all active subscriptions
+ *     wp wcsr update --status=active
+ *
+ *     # Preview changes for all subscriptions
+ *     wp wcsr update --dry-run
+ *
+ *     # Update a specific subscription
+ *     wp wcsr update --id=123
+ *
+ * @when after_wp_load
+ */
     public function update( $args, $assoc_args ) {
         // Parse command arguments
         $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
