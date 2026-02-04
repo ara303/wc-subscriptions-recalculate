@@ -95,15 +95,11 @@ class WC_Subscriptions_Recalculate {
      * @when after_wp_load
      */
     public function update( $args, $assoc_args ) {
-        $format              = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table'; 
-        $subscription_id     = isset( $assoc_args['id'] ) ? intval( $assoc_args['id'] ) : false;
-        $subscription_status = isset( $assoc_args['status'] ) ? $assoc_args['status'] : 'any';
-        $dry_run             = isset( $assoc_args['dry-run'] ) ?: false;
-
-        if( ! in_array( $subscription_status, ['any', 'active', 'cancelled', 'suspended', 'expired', 'pending', 'trash'], true ) ){
-            WP_CLI::error( "Invalid subscription status: {$subscription_status}." );
-            return;
-        }
+        $subscription_id     = \WP_CLI\Utils\get_flag_value( $assoc_args, 'id', null );
+        $subscription_status = \WP_CLI\Utils\get_flag_value( $assoc_args, 'status', 'any' );
+        
+        $format              = \WP_CLI\Utils\get_flag_value( $assoc_args, 'format', 'table' );
+        $dry_run             = \WP_CLI\Utils\get_flag_value( $assoc_args, 'dry-run', false );
 
         $subscriptions = $this->get_subscriptions( $subscription_id, $subscription_status );
 
