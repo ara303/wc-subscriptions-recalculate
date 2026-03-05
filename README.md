@@ -14,8 +14,6 @@ I do this through WP-CLI because depending on how many subscriptions you might h
 
 ## Usage
 
-This plugin uses standard WordPress CRUD (Create, Read, Update, Delete) terminology for its commands:
-
 - **`create`** - Create a backup of subscription data
 - **`update`** - Update subscription prices to match current product prices
 - **`restore`** - Restore subscription data from a backup file
