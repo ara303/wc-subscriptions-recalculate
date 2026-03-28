@@ -24,7 +24,7 @@ wp wcsr create [--id=<subscription_id>] [--status=<subscription_status>]
 ```
 
 > [!CAUTION]
- This and `restore` work on databases of a relatively large size (~100 MB), but may not for much larger databases if you have thousands (or even more) subscriptions. **As a just-in-case precaution,** also run the WP-CLI commands to [export](https://developer.wordpress.org/cli/commands/db/export/) and [import](https://developer.wordpress.org/cli/commands/db/import/) databases in entirety.
+**As a precaution,** you should run the WP-CLI commands for [`export`](https://developer.wordpress.org/cli/commands/db/export/) and [`import`](https://developer.wordpress.org/cli/commands/db/import/) just in case.
 
 Create an SQL dump of subscriptions which may be affected across `wp_posts`, `wp_post_meta`, `woocommerce_order_items`, and `woocommerce_order_itemmeta`. A file named `wcsr_backup_<dd-mm-yy_hh-mm-ss>.sql` will be created in your WP content directory (normally `/wp-content/`).
 
