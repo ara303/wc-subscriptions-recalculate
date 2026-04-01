@@ -1,0 +1,34 @@
+{
+    "name": "ara303/wc-subscriptions-recalculate",
+    "description": "Bulk update existing WooCommerce Subscriptions when the prices of products change, via WP-CLI commands.",
+    "type": "wp-cli-package",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "ara303"
+        }
+    ],
+    "require": {
+        "wp-cli/wp-cli": "^2.5"
+    },
+    "require-dev": {
+        "wp-cli/wp-cli-tests": "^4"
+    },
+    "autoload": {
+        "files": [
+            "wc-subscriptions-recalculate.php"
+        ]
+    },
+    "config": {
+        "process-timeout": 7200,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "johnpbloch/wordpress-core-installer": true
+        }
+    },
+    "scripts": {
+        "behat": "run-behat-tests",
+        "behat-rerun": "rerun-behat-tests",
+        "prepare-tests": "install-package-tests"
+    }
+}
