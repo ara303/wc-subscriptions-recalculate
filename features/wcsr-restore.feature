@@ -5,10 +5,10 @@ Feature: wcsr restore command
 
   Background:
     Given a WP installation
-    And WooCommerce and WooCommerce Subscriptions are installed and active
+    And the WooCommerce stubs are loaded
 
   Scenario: Restore from a backup file
-    Given a WooCommerce product "Monthly Widget" with price "10.00"
+    Given a product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And I run `wp wcsr create --id={SUBSCRIPTION_ID}`
     And the backup file should exist in wp-content
@@ -21,7 +21,7 @@ Feature: wcsr restore command
       """
 
   Scenario: Restore and delete backup file
-    Given a WooCommerce product "Monthly Widget" with price "10.00"
+    Given a product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And I run `wp wcsr create --id={SUBSCRIPTION_ID}`
     And the backup file should exist in wp-content
@@ -52,11 +52,11 @@ Feature: wcsr restore command
       """
     And the return code should not be 0
 
-  Scenario: Full round-trip: create backup, update, then restore
-    Given a WooCommerce product "Monthly Widget" with price "10.00"
+  Scenario: Full round-trip backup then update then restore
+    Given a product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
-    # Create backup
+    # Backup original state
     And I run `wp wcsr create --id={SUBSCRIPTION_ID}`
     And the backup file should exist in wp-content
 

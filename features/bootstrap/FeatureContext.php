@@ -1,53 +1,43 @@
 <?php
 
 use WP_CLI\Tests\Context\FeatureContext as BaseFeatureContext;
-use Behat\Gherkin\Node\PyStringNode;
 
 class FeatureContext extends BaseFeatureContext {
 
 	/**
-	 * Install and activate WooCommerce + WooCommerce Subscriptions.
+	 * Copy the WC/WCS stubs mu-plugin into the test WP install.
 	 *
-	 * WooCommerce is installed from the plugin directory.
-	 * WooCommerce Subscriptions must be available locally at
-	 * WCS_PLUGIN_PATH env var (it's a premium plugin).
-	 *
-	 * @Given WooCommerce and WooCommerce Subscriptions are installed and active
+	 * @Given the WooCommerce stubs are loaded
 	 */
-	public function given_woocommerce_and_subscriptions_active() {
-		$this->proc( 'wp plugin install woocommerce --activate' )->run_check();
+	public function given_woocommerce_stubs_loaded() {
+		$run_dir = $this->variables['RUN_DIR'];
+		$mu_dir  = $run_dir . '/wp-content/mu-plugins';
 
-		$wcs_path = getenv( 'WCS_PLUGIN_PATH' );
-
-		if ( ! $wcs_path || ! is_dir( $wcs_path ) ) {
-			throw new \RuntimeException(
-				'WCS_PLUGIN_PATH env var must point to a local copy of the WooCommerce Subscriptions plugin directory.'
-			);
+		if ( ! is_dir( $mu_dir ) ) {
+			mkdir( $mu_dir, 0777, true );
 		}
 
-		$run_dir = $this->variables['RUN_DIR'];
-		$dest    = $run_dir . '/wp-content/plugins/woocommerce-subscriptions';
+		copy(
+			dirname( __DIR__ ) . '/extra/wcsr-test-stubs.php',
+			$mu_dir . '/wcsr-test-stubs.php'
+		);
 
-		// Symlink the plugin into the WP install.
-		symlink( $wcs_path, $dest );
-
-		$this->proc( 'wp plugin activate woocommerce-subscriptions' )->run_check();
+		// Run a quick wp eval to trigger the init hook and create the WC tables.
+		$this->proc( 'wp eval "do_action(\'init\');"' )->run_check();
 	}
 
 	/**
-	 * Create a simple WooCommerce product.
+	 * Create a fake WooCommerce product stored in wp_posts + postmeta.
 	 *
-	 * @Given a WooCommerce product :title with price :price
+	 * @Given a product :title with price :price
 	 */
-	public function given_a_woocommerce_product( $title, $price ) {
+	public function given_a_product( $title, $price ) {
 		$php = sprintf(
-			'$product = new WC_Product_Simple();' .
-			'$product->set_name( %s );' .
-			'$product->set_regular_price( %s );' .
-			'$product->set_price( %s );' .
-			'$product->set_status( "publish" );' .
-			'$product->save();' .
-			'echo $product->get_id();',
+			'$id = wp_insert_post(["post_title" => %s, "post_type" => "product", "post_status" => "publish"]);' .
+			'update_post_meta($id, "_price", %s);' .
+			'update_post_meta($id, "_regular_price", %s);' .
+			'update_post_meta($id, "_tax_class", "");' .
+			'echo $id;',
 			var_export( $title, true ),
 			var_export( $price, true ),
 			var_export( $price, true )
@@ -58,58 +48,39 @@ class FeatureContext extends BaseFeatureContext {
 	}
 
 	/**
-	 * Create a subscription for a given product.
+	 * Create a fake subscription (shop_subscription post) with a line item.
 	 *
 	 * @Given an active subscription exists for product :product_id with price :price
 	 */
-	public function given_an_active_subscription_for_product( $product_id, $price ) {
+	public function given_an_active_subscription( $product_id, $price ) {
 		$product_id = $this->replace_variables( $product_id );
 		$price      = $this->replace_variables( $price );
 
 		$php = <<<PHP
-\$product = wc_get_product( {$product_id} );
-\$order = wc_create_order( [ 'status' => 'completed' ] );
-\$subscription = wcs_create_subscription( [
-    'order_id'         => \$order->get_id(),
-    'status'           => 'active',
-    'billing_period'   => 'month',
-    'billing_interval' => 1,
-] );
-if ( is_wp_error( \$subscription ) ) {
-    WP_CLI::error( \$subscription->get_error_message() );
-}
-\$item_id = \$subscription->add_product( \$product, 1, [
-    'subtotal' => {$price},
-    'total'    => {$price},
-] );
-\$subscription->set_total( {$price} );
-\$subscription->save();
-echo \$subscription->get_id();
+global \$wpdb;
+\$sub_id = wp_insert_post([
+    'post_type'   => 'shop_subscription',
+    'post_status' => 'wc-active',
+    'post_title'  => 'Subscription',
+]);
+update_post_meta(\$sub_id, '_order_total', '{$price}');
+
+\$wpdb->insert("{$this->wc_table('woocommerce_order_items')}", [
+    'order_item_name' => 'Line Item',
+    'order_item_type' => 'line_item',
+    'order_id'        => \$sub_id,
+]);
+\$item_id = \$wpdb->insert_id;
+
+\$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_product_id',    'meta_value' => '{$product_id}']);
+\$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_line_subtotal', 'meta_value' => '{$price}']);
+\$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_line_total',    'meta_value' => '{$price}']);
+
+echo \$sub_id;
 PHP;
 
 		$result = $this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
 		$this->variables['SUBSCRIPTION_ID'] = trim( $result->stdout );
-	}
-
-	/**
-	 * Update a product's price after subscription creation.
-	 *
-	 * @Given the product :product_id price is changed to :new_price
-	 */
-	public function given_product_price_changed( $product_id, $new_price ) {
-		$product_id = $this->replace_variables( $product_id );
-
-		$php = sprintf(
-			'$product = wc_get_product( %s );' .
-			'$product->set_regular_price( %s );' .
-			'$product->set_price( %s );' .
-			'$product->save();',
-			$product_id,
-			var_export( $new_price, true ),
-			var_export( $new_price, true )
-		);
-
-		$this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
 	}
 
 	/**
@@ -122,24 +93,26 @@ PHP;
 		$price      = $this->replace_variables( $price );
 
 		$php = <<<PHP
-\$product = wc_get_product( {$product_id} );
-\$order = wc_create_order( [ 'status' => 'completed' ] );
-\$subscription = wcs_create_subscription( [
-    'order_id'         => \$order->get_id(),
-    'status'           => '{$status}',
-    'billing_period'   => 'month',
-    'billing_interval' => 1,
-] );
-if ( is_wp_error( \$subscription ) ) {
-    WP_CLI::error( \$subscription->get_error_message() );
-}
-\$subscription->add_product( \$product, 1, [
-    'subtotal' => {$price},
-    'total'    => {$price},
-] );
-\$subscription->set_total( {$price} );
-\$subscription->save();
-echo \$subscription->get_id();
+global \$wpdb;
+\$sub_id = wp_insert_post([
+    'post_type'   => 'shop_subscription',
+    'post_status' => 'wc-{$status}',
+    'post_title'  => 'Subscription',
+]);
+update_post_meta(\$sub_id, '_order_total', '{$price}');
+
+\$wpdb->insert("{$this->wc_table('woocommerce_order_items')}", [
+    'order_item_name' => 'Line Item',
+    'order_item_type' => 'line_item',
+    'order_id'        => \$sub_id,
+]);
+\$item_id = \$wpdb->insert_id;
+
+\$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_product_id',    'meta_value' => '{$product_id}']);
+\$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_line_subtotal', 'meta_value' => '{$price}']);
+\$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_line_total',    'meta_value' => '{$price}']);
+
+echo \$sub_id;
 PHP;
 
 		$result = $this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
@@ -147,42 +120,7 @@ PHP;
 	}
 
 	/**
-	 * Verify a subscription line item price in the database.
-	 *
-	 * @Then the subscription :subscription_id should have line item total :expected_price
-	 */
-	public function then_subscription_should_have_line_item_total( $subscription_id, $expected_price ) {
-		$subscription_id = $this->replace_variables( $subscription_id );
-
-		$php = <<<PHP
-\$subscription = wcs_get_subscription( {$subscription_id} );
-foreach ( \$subscription->get_items() as \$item ) {
-    echo \$item->get_total();
-    break;
-}
-PHP;
-
-		$result = $this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
-		$actual = trim( $result->stdout );
-
-		if ( $actual !== $expected_price ) {
-			throw new \Exception(
-				"Expected subscription line item total to be '{$expected_price}', but got '{$actual}'."
-			);
-		}
-	}
-
-	/**
-	 * Verify a subscription line item price has NOT changed.
-	 *
-	 * @Then the subscription :subscription_id should still have line item total :expected_price
-	 */
-	public function then_subscription_should_still_have_line_item_total( $subscription_id, $expected_price ) {
-		$this->then_subscription_should_have_line_item_total( $subscription_id, $expected_price );
-	}
-
-	/**
-	 * Create multiple subscriptions with different products.
+	 * Create multiple subscriptions for bulk-update tests.
 	 *
 	 * @Given :count active subscriptions exist for product :product_id with price :price
 	 */
@@ -192,28 +130,30 @@ PHP;
 		$count      = (int) $count;
 
 		$php = <<<PHP
-\$product = wc_get_product( {$product_id} );
+global \$wpdb;
 \$ids = [];
-for ( \$i = 0; \$i < {$count}; \$i++ ) {
-    \$order = wc_create_order( [ 'status' => 'completed' ] );
-    \$subscription = wcs_create_subscription( [
-        'order_id'         => \$order->get_id(),
-        'status'           => 'active',
-        'billing_period'   => 'month',
-        'billing_interval' => 1,
-    ] );
-    if ( is_wp_error( \$subscription ) ) {
-        WP_CLI::error( \$subscription->get_error_message() );
-    }
-    \$subscription->add_product( \$product, 1, [
-        'subtotal' => {$price},
-        'total'    => {$price},
-    ] );
-    \$subscription->set_total( {$price} );
-    \$subscription->save();
-    \$ids[] = \$subscription->get_id();
+for (\$i = 0; \$i < {$count}; \$i++) {
+    \$sub_id = wp_insert_post([
+        'post_type'   => 'shop_subscription',
+        'post_status' => 'wc-active',
+        'post_title'  => 'Subscription ' . (\$i + 1),
+    ]);
+    update_post_meta(\$sub_id, '_order_total', '{$price}');
+
+    \$wpdb->insert("{$this->wc_table('woocommerce_order_items')}", [
+        'order_item_name' => 'Line Item',
+        'order_item_type' => 'line_item',
+        'order_id'        => \$sub_id,
+    ]);
+    \$item_id = \$wpdb->insert_id;
+
+    \$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_product_id',    'meta_value' => '{$product_id}']);
+    \$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_line_subtotal', 'meta_value' => '{$price}']);
+    \$wpdb->insert("{$this->wc_table('woocommerce_order_itemmeta')}", ['order_item_id' => \$item_id, 'meta_key' => '_line_total',    'meta_value' => '{$price}']);
+
+    \$ids[] = \$sub_id;
 }
-echo implode( ',', \$ids );
+echo implode(',', \$ids);
 PHP;
 
 		$result = $this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
@@ -221,17 +161,69 @@ PHP;
 	}
 
 	/**
+	 * Change a product's price in postmeta.
+	 *
+	 * @Given the product :product_id price is changed to :new_price
+	 */
+	public function given_product_price_changed( $product_id, $new_price ) {
+		$product_id = $this->replace_variables( $product_id );
+
+		$php = sprintf(
+			'update_post_meta(%s, "_price", %s); update_post_meta(%s, "_regular_price", %s);',
+			$product_id,
+			var_export( $new_price, true ),
+			$product_id,
+			var_export( $new_price, true )
+		);
+
+		$this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
+	}
+
+	/**
+	 * Verify a subscription's line item total in the database.
+	 *
+	 * @Then the subscription :subscription_id should have line item total :expected_price
+	 */
+	public function then_subscription_line_item_total( $subscription_id, $expected_price ) {
+		$subscription_id = $this->replace_variables( $subscription_id );
+
+		$php = <<<PHP
+global \$wpdb;
+\$item_id = \$wpdb->get_var("SELECT order_item_id FROM {$this->wc_table('woocommerce_order_items')} WHERE order_id = {$subscription_id} AND order_item_type = 'line_item' LIMIT 1");
+echo \$wpdb->get_var("SELECT meta_value FROM {$this->wc_table('woocommerce_order_itemmeta')} WHERE order_item_id = {\$item_id} AND meta_key = '_line_total'");
+PHP;
+
+		$result = $this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
+		$actual = trim( $result->stdout );
+
+		if ( $actual !== $expected_price ) {
+			throw new \Exception(
+				"Expected line item total '{$expected_price}', got '{$actual}'."
+			);
+		}
+	}
+
+	/**
+	 * Alias — verify a subscription's line item has NOT changed.
+	 *
+	 * @Then the subscription :subscription_id should still have line item total :expected_price
+	 */
+	public function then_subscription_still_has_total( $subscription_id, $expected_price ) {
+		$this->then_subscription_line_item_total( $subscription_id, $expected_price );
+	}
+
+	/**
 	 * @Then the backup file should exist in wp-content
 	 */
-	public function then_backup_file_should_exist_in_wp_content() {
+	public function then_backup_file_exists() {
 		$run_dir = $this->variables['RUN_DIR'];
-		$php     = 'echo implode( "\n", glob( WP_CONTENT_DIR . "/wcsr_backup_*.sql" ) );';
 
+		$php = 'echo implode("\n", glob(WP_CONTENT_DIR . "/wcsr_backup_*.sql"));';
 		$result = $this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
 		$files  = array_filter( explode( "\n", trim( $result->stdout ) ) );
 
 		if ( empty( $files ) ) {
-			throw new \Exception( 'No wcsr_backup_*.sql file found in wp-content directory.' );
+			throw new \Exception( 'No wcsr_backup_*.sql file found in wp-content.' );
 		}
 
 		$this->variables['BACKUP_FILE'] = basename( $files[0] );
@@ -240,21 +232,25 @@ PHP;
 	/**
 	 * @Then the backup file should contain SQL for subscription :subscription_id
 	 */
-	public function then_backup_file_should_contain_sql_for_subscription( $subscription_id ) {
+	public function then_backup_contains_subscription( $subscription_id ) {
 		$subscription_id = $this->replace_variables( $subscription_id );
 		$run_dir         = $this->variables['RUN_DIR'];
 		$backup_file     = $this->variables['BACKUP_FILE'];
-		$file_path       = $run_dir . '/wp-content/' . $backup_file;
+		$path            = $run_dir . '/wp-content/' . $backup_file;
 
-		if ( ! file_exists( $file_path ) ) {
-			throw new \Exception( "Backup file not found: {$file_path}" );
+		if ( ! file_exists( $path ) ) {
+			throw new \Exception( "Backup file not found: {$path}" );
 		}
 
-		$contents = file_get_contents( $file_path );
+		$contents = file_get_contents( $path );
+
+		if ( strpos( $contents, 'INSERT INTO' ) === false ) {
+			throw new \Exception( 'Backup file contains no INSERT statements.' );
+		}
 
 		if ( strpos( $contents, (string) $subscription_id ) === false ) {
 			throw new \Exception(
-				"Backup file does not contain data for subscription ID {$subscription_id}."
+				"Backup file does not reference subscription ID {$subscription_id}."
 			);
 		}
 	}
@@ -262,13 +258,26 @@ PHP;
 	/**
 	 * @Then the backup file should not exist in wp-content
 	 */
-	public function then_backup_file_should_not_exist_in_wp_content() {
-		$backup_file = $this->variables['BACKUP_FILE'];
+	public function then_backup_file_deleted() {
 		$run_dir     = $this->variables['RUN_DIR'];
-		$file_path   = $run_dir . '/wp-content/' . $backup_file;
+		$backup_file = $this->variables['BACKUP_FILE'];
+		$path        = $run_dir . '/wp-content/' . $backup_file;
 
-		if ( file_exists( $file_path ) ) {
-			throw new \Exception( "Backup file should have been deleted but still exists: {$file_path}" );
+		if ( file_exists( $path ) ) {
+			throw new \Exception( "Backup file should have been deleted: {$path}" );
 		}
+	}
+
+	/**
+	 * Helper: return the prefixed WC table name for use in eval'd PHP.
+	 *
+	 * Because the table prefix is only known inside the WP process, we use
+	 * $wpdb->prefix in the eval'd code. This helper returns the string
+	 * expression to embed in heredoc PHP.
+	 */
+	private function wc_table( $table ) {
+		// This string will be embedded inside PHP code that runs via `wp eval`.
+		// It uses $wpdb->prefix which is available in that context.
+		return '{$wpdb->prefix}' . $table;
 	}
 }
