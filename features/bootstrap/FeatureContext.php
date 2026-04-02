@@ -1,37 +1,32 @@
 <?php
 
 use WP_CLI\Tests\Context\FeatureContext as BaseFeatureContext;
-use Behat\Gherkin\Node\PyStringNode;
-
 class FeatureContext extends BaseFeatureContext {
 
 	/**
-	 * Install and activate WooCommerce + WooCommerce Subscriptions.
+	 * Verify WooCommerce and WooCommerce Subscriptions are installed and active.
 	 *
-	 * WooCommerce is installed from the plugin directory.
-	 * WooCommerce Subscriptions must be available locally at
-	 * WCS_PLUGIN_PATH env var (it's a premium plugin).
+	 * Both plugins must already be present in the test WP install.
+	 * Fails immediately if either is missing or inactive.
 	 *
 	 * @Given WooCommerce and WooCommerce Subscriptions are installed and active
 	 */
 	public function given_woocommerce_and_subscriptions_active() {
-		$this->proc( 'wp plugin install woocommerce --activate' )->run_check();
+		$php = <<<'PHP'
+$required = ['woocommerce/woocommerce.php', 'woocommerce-subscriptions/woocommerce-subscriptions.php'];
+$missing  = [];
+foreach ($required as $plugin) {
+    if (!is_plugin_active($plugin)) {
+        $missing[] = $plugin;
+    }
+}
+if ($missing) {
+    WP_CLI::error('Required plugins not active: ' . implode(', ', $missing));
+}
+WP_CLI::success('All required plugins are active.');
+PHP;
 
-		$wcs_path = getenv( 'WCS_PLUGIN_PATH' );
-
-		if ( ! $wcs_path || ! is_dir( $wcs_path ) ) {
-			throw new \RuntimeException(
-				'WCS_PLUGIN_PATH env var must point to a local copy of the WooCommerce Subscriptions plugin directory.'
-			);
-		}
-
-		$run_dir = $this->variables['RUN_DIR'];
-		$dest    = $run_dir . '/wp-content/plugins/woocommerce-subscriptions';
-
-		// Symlink the plugin into the WP install.
-		symlink( $wcs_path, $dest );
-
-		$this->proc( 'wp plugin activate woocommerce-subscriptions' )->run_check();
+		$this->proc( 'wp eval ' . escapeshellarg( $php ) )->run_check();
 	}
 
 	/**
