@@ -5,10 +5,10 @@ Feature: wcsr update command
 
   Background:
     Given a WP installation
-    And the WooCommerce stubs are loaded
+    And WooCommerce and WooCommerce Subscriptions are installed and active
 
   Scenario: Update a single subscription when product price has changed
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "15.00"
 
@@ -29,7 +29,7 @@ Feature: wcsr update command
     And the subscription "{SUBSCRIPTION_ID}" should have line item total "15"
 
   Scenario: Dry run does not write changes to database
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "20.00"
 
@@ -37,12 +37,12 @@ Feature: wcsr update command
 
     Then STDOUT should contain:
       """
-      --dry-run flag means no changes were made
+      Success: Completed but --dry-run flag means no changes were made.
       """
-    And the subscription "{SUBSCRIPTION_ID}" should still have line item total "10.00"
+    And the subscription "{SUBSCRIPTION_ID}" should still have line item total "10"
 
   Scenario: No output rows when prices have not changed
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
     When I run `wp wcsr update --id={SUBSCRIPTION_ID}`
@@ -53,7 +53,7 @@ Feature: wcsr update command
       """
 
   Scenario: Update all subscriptions at once
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And 3 active subscriptions exist for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "12.00"
 
@@ -69,7 +69,7 @@ Feature: wcsr update command
       """
 
   Scenario: Filter update by active status
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "18.00"
 
@@ -84,8 +84,8 @@ Feature: wcsr update command
       Success: Completed.
       """
 
-  Scenario: Filtering by cancelled status skips active subscriptions
-    Given a product "Monthly Widget" with price "10.00"
+  Scenario: Filter update by cancelled status returns no changes for active subscriptions
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "25.00"
 
@@ -94,7 +94,7 @@ Feature: wcsr update command
     Then the return code should not be 0
 
   Scenario: Output in JSON format
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "15.00"
 
@@ -110,7 +110,7 @@ Feature: wcsr update command
       """
 
   Scenario: Output in CSV format
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "15.00"
 
@@ -122,7 +122,7 @@ Feature: wcsr update command
       """
 
   Scenario: Legacy recalculate alias works
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "15.00"
 
@@ -135,7 +135,7 @@ Feature: wcsr update command
     And the subscription "{SUBSCRIPTION_ID}" should have line item total "15"
 
   Scenario: Update subscription with on-hold status
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And a "on-hold" subscription exists for product "{PRODUCT_ID}" with price "10.00"
     And the product "{PRODUCT_ID}" price is changed to "22.00"
 

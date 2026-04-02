@@ -5,10 +5,10 @@ Feature: wcsr create (backup) command
 
   Background:
     Given a WP installation
-    And the WooCommerce stubs are loaded
+    And WooCommerce and WooCommerce Subscriptions are installed and active
 
   Scenario: Create a backup of all subscriptions
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
     When I run `wp wcsr create`
@@ -25,7 +25,7 @@ Feature: wcsr create (backup) command
     And the backup file should contain SQL for subscription "{SUBSCRIPTION_ID}"
 
   Scenario: Create a backup for a specific subscription by ID
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
     When I run `wp wcsr create --id={SUBSCRIPTION_ID}`
@@ -38,7 +38,7 @@ Feature: wcsr create (backup) command
     And the backup file should contain SQL for subscription "{SUBSCRIPTION_ID}"
 
   Scenario: Create a backup filtered by active status
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
     When I run `wp wcsr create --status=active`
@@ -68,7 +68,7 @@ Feature: wcsr create (backup) command
     And the return code should not be 0
 
   Scenario: Legacy backup alias works
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
     When I run `wp wcsr backup`
@@ -80,7 +80,7 @@ Feature: wcsr create (backup) command
     And the backup file should exist in wp-content
 
   Scenario: Backup file contains INSERT statements
-    Given a product "Monthly Widget" with price "10.00"
+    Given a WooCommerce product "Monthly Widget" with price "10.00"
     And an active subscription exists for product "{PRODUCT_ID}" with price "10.00"
 
     When I run `wp wcsr create --id={SUBSCRIPTION_ID}`
