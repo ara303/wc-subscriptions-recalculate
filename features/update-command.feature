@@ -16,18 +16,14 @@ Feature: Update subscription prices
       Seeded update command test data.
       """
 
-    When I run `wp wcsr update --id=$(wp option get wcsr_test_active_subscription_id) --dry-run --format=json`
+    When I run `wp wcsr update --id=$(wp option get wcsr_test_active_subscription_id) --dry-run --format=csv`
     Then STDOUT should contain:
       """
-      "subscription_id"
+      subscription_id,old_price,new_price
       """
     And STDOUT should contain:
       """
-      "old_price":"15"
-      """
-    And STDOUT should contain:
-      """
-      "new_price":"25"
+      ,15,25
       """
 
     When I run `wp eval 'echo ((array) get_post_meta( (int) get_option( "wcsr_test_active_subscription_id" ), "_wcsr_items", true ))[0]["subtotal"];'`
@@ -52,18 +48,14 @@ Feature: Update subscription prices
       Seeded update command test data.
       """
 
-    When I run `wp wcsr update --status=active --format=json`
+    When I run `wp wcsr update --status=active --format=csv`
     Then STDOUT should contain:
       """
-      "subscription_id"
+      subscription_id,old_price,new_price
       """
     And STDOUT should contain:
       """
-      "old_price":"15"
-      """
-    And STDOUT should contain:
-      """
-      "new_price":"25"
+      ,15,25
       """
 
     When I run `wp eval 'echo ((array) get_post_meta( (int) get_option( "wcsr_test_active_subscription_id" ), "_wcsr_items", true ))[0]["subtotal"];'`
