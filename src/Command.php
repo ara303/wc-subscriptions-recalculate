@@ -128,10 +128,12 @@ class Command extends WP_CLI_Command {
                 $new_price += array_sum( $taxes );
 
                 if ( ! $dry_run ) {
-                    $item->set_taxes([
-                        'total'    => $taxes,
-                        'subtotal' => $taxes
-                    ]);
+                    if ( ! empty( $taxes ) ) {
+                        $item->set_taxes([
+                            'total'    => $taxes,
+                            'subtotal' => $taxes
+                        ]);
+                    }
                     $item->set_subtotal( $new_price );
                     $item->set_total( $new_price );
                     $item->save();
