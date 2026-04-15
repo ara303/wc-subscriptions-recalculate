@@ -127,7 +127,7 @@ class Command extends WP_CLI_Command {
                 $taxes     = \WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );
                 $new_price += array_sum( $taxes );
 
-                if( ! $dry_run ){
+                if ( ! $dry_run ) {
                     $item->set_taxes([
                         'total'    => $taxes,
                         'subtotal' => $taxes
