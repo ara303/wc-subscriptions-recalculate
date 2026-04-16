@@ -1,6 +1,8 @@
 #### Prerequisites
 
-- WP-CLI 2.13 or newer (`wp cli update --nightly` if you're using WP older than 7.0, which bundles WP-CLI 2.13)
+- WP-CLI 2.13 or newer 
+
+_Note:_ WP-CLI 2.12 ships with WP versions >7.0. Get 2.13+ by running `wp cli update --nightly`.
 
 ### As package
 

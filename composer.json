@@ -1,5 +1,5 @@
 {
-    "name": "ara303/wcsr",
+    "name": "ara303/wc-subscriptions-recalculate",
     "version": "1.0.0",
     "type": "wp-cli-package",
     "description": "Recalculate WooCommerce Subscriptions in bulk for existing subscriptions (via WP-CLI)",
