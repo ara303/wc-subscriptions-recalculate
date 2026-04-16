@@ -1,15 +1,15 @@
 Feature: Update subscription prices
+
   Scenario: Status filters update only matching subscriptions
     Given a WP install
-    And I am in the "{PACKAGE_DIR}" directory
 
-    When I run `wp eval-file {PACKAGE_DIR}/features/bootstrap/install-test-stubs.php`
+    When I run `wp eval-file {PROJECT_DIR}/features/bootstrap/install-test-stubs.php`
     Then STDOUT should contain:
       """
       Installed test stubs.
       """
 
-    When I run `wp eval-file {PACKAGE_DIR}/features/bootstrap/seed-update-command-data.php`
+    When I run `wp eval-file {PROJECT_DIR}/features/bootstrap/seed-update-command-data.php`
     Then STDOUT should contain:
       """
       Seeded update command test data.
