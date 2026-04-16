@@ -8,7 +8,7 @@ use WP_CLI_Command;
 class Command extends WP_CLI_Command {
     private $backup_file;
 
-    public function __invoke() {
+    public function __construct() {
         $this->backup_file = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'wcsr_backup_' . date('Y-m-d_H-i-s') . '.sql';
 
 		if( ! class_exists( 'WC_Subscriptions' ) ){
