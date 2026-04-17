@@ -1,0 +1,76 @@
+{
+    "name": "ara303/wc-subscriptions-recalculate",
+    "type": "wp-cli-package",
+    "description": "Recalculate WooCommerce Subscriptions in bulk for existing subscriptions (via WP-CLI)",
+    "homepage": "https://github.com/ara303/woocommerce-subscriptions-recalculate",
+    "license": "GPL-2.0-only",
+    "authors": [],
+    "require": {
+        "wp-cli/wp-cli": "^2.13"
+    },
+    "require-dev": {
+        "wp-cli/wp-cli-tests": "^5.0.0"
+    },
+    "config": {
+        "process-timeout": 7200,
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        },
+        "bundled": false,
+        "commands": [
+            "wcsr update",
+            "wcsr create",
+            "wcsr restore"
+        ],
+        "readme": {
+            "sections": [
+                "Using",
+                "Installing",
+                "Notes"
+            ],
+            "installing": {
+                "body": "docs/installing.md"
+            },
+            "notes": {
+                "body": "docs/notes.md"
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "WP_CLI\\WCSRecalculate\\": "src/"
+        },
+        "files": [
+            "command.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "behat": "run-behat-tests",
+        "behat-rerun": "rerun-behat-tests",
+        "lint": "run-linter-tests",
+        "phpcs": "run-phpcs-tests",
+        "phpstan": "run-phpstan-tests",
+        "phpcbf": "run-phpcbf-cleanup",
+        "phpunit": "run-php-unit-tests",
+        "prepare-tests": "install-package-tests",
+        "test": [
+            "@lint",
+            "@phpcs",
+            "@phpstan",
+            "@phpunit",
+            "@behat"
+        ]
+    },
+    "support": {
+        "issues": "https://github.com/ara303/woocommerce-subscriptions-recalculate/issues"
+    }
+}

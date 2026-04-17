@@ -1,82 +1,154 @@
-# wc-subscriptions-recalculate
+ara303/wc-subscriptions-recalculate
+===================================
+
+Recalculate WooCommerce Subscriptions in bulk for existing subscriptions (via WP-CLI)
+
+
+
+Quick links: [Using](#using) | [Installing](#installing) | [Notes](#notes)
+
+## Using
+
+This package implements the following commands:
+
+### wp wcsr update
+
+Update subscription prices to match current product prices.
+
+~~~
+wp wcsr update [--dry-run] [--id=<subscription_id>] [--status=<subscription_status>] [--format=<format>]
+~~~
+
+**OPTIONS**
+
+	[--dry-run]
+		Preview changes without writing to database.
+
+	[--id=<subscription_id>]
+		Update a specific subscription by ID.
+
+	[--status=<subscription_status>]
+		Filter subscriptions by status.
+		---
+		default: any
+		options:
+		  - any
+		  - active
+		  - cancelled
+		  - suspended
+		  - expired
+		  - pending
+		  - trash
+		---
+
+	[--format=<format>]
+		Render output in a particular format.
+		---
+		default: table
+		options:
+		  - table
+		  - json
+		  - csv
+		  - yaml
+		  - ids
+		  - count
+		---
+
+**EXAMPLES**
+
+    # Update all active subscriptions
+    wp wcsr update --status=active
+
+    # Preview changes for all subscriptions
+    wp wcsr update --dry-run
+
+    # Update a specific subscription
+    wp wcsr update --id=123
+
+
+
+### wp wcsr create
+
+Create a backup of subscription data.
+
+~~~
+wp wcsr create [--id=<subscription_id>] [--status=<subscription_status>]
+~~~
+
+**OPTIONS**
+
+	[--id=<subscription_id>]
+		Backup a specific subscription by ID.
+
+	[--status=<subscription_status>]
+		Filter subscriptions by status (any, active, cancelled, suspended, expired, pending, trash).
+		---
+		default: any
+		---
+
+**EXAMPLES**
+
+    # Backup all subscriptions
+    wp wcsr create
+
+    # Backup only active subscriptions
+    wp wcsr create --status=active
+
+    # Backup a specific subscription
+    wp wcsr create --id=123
+
+
+
+### wp wcsr restore
+
+Restore subscription data from a backup file.
+
+~~~
+wp wcsr restore --file=<filename> [--delete]
+~~~
+
+**OPTIONS**
+
+	--file=<filename>
+		Backup filename (located in wp-content directory).
+
+	[--delete]
+		Delete the backup file after successful restoration.
+
+**EXAMPLES**
+
+    # Restore from backup
+    wp wcsr restore --file=wcsr_backup_2024-01-20_10-30-00.sql
+
+    # Restore and delete backup file
+    wp wcsr restore --file=wcsr_backup_2024-01-20_10-30-00.sql --delete
+
+## Installing
+
+#### Prerequisites
+
+- WP-CLI >=2.13 
+
+_Note:_ WP <7.0 does not have WP-CLI 2.13. Install manually: `wp cli update --nightly`.
+
+### As package
+
+As of 1.0.0 release, install as a WordPress package:
+
+~~~
+wp package install ara303/wc-subscriptions-recalculate
+~~~
+
+### As MU-Plugin (unsupported)
+
+If you really want, take the contents of `src/Command.php` and put it into your own MU-Plugin.
+
+## Notes
+
 > [!IMPORTANT]
  VAT/tax calculation is only suitable for my usecase (enter prices without and only add it at checkout, relying on built-in tax calculation methods). Depending on what regions and tax laws you have to comply with this may or may not apply to you.
 
-Bulk update existing WooCommerce Subscriptions when the prices of products change via WP-CLI (verbose by default).
+You should run the WP-CLI commands for [`export`](https://developer.wordpress.org/cli/commands/db/export/) and [`import`](https://developer.wordpress.org/cli/commands/db/import/) just in case.
 
-I do this through WP-CLI because depending on how many subscriptions you might have it didn't seem right to waste resources running this through the WP-Admin UI, and using WP-CLI makes it a breeze to keep a log of each item that's been updated in case something seems to be wrong.
 
-## Installation
-2. Install either as an [MU-Plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) (single file) or via regular plugin installation means.
-3. SSH to your server (some providers give you a console for this, otherwise do so manually) and navigate to your WP installation directory.
-4. You should both create a backup (`wp wcsr create`) and dry run the update command (`wp wcsr update --dry-run`) before you run for real with `wp wcsr update`.
-6. You'll see a success message upon successful update! 🎉
-
-## Usage
-
-- **`create`** - Create a backup of subscription data
-- **`update`** - Update subscription prices to match current product prices
-- **`restore`** - Restore subscription data from a backup file
-
-### `create`
-```
-wp wcsr create [--id=<subscription_id>] [--status=<subscription_status>]
-```
-
-> [!CAUTION]
-**As a precaution,** you should run the WP-CLI commands for [`export`](https://developer.wordpress.org/cli/commands/db/export/) and [`import`](https://developer.wordpress.org/cli/commands/db/import/) just in case.
-
-Create an SQL dump of subscriptions which may be affected across `wp_posts`, `wp_post_meta`, `woocommerce_order_items`, and `woocommerce_order_itemmeta`. A file named `wcsr_backup_<dd-mm-yy_hh-mm-ss>.sql` will be created in your WP content directory (normally `/wp-content/`).
-
-##### `--id=<subscription_id>`
-> Specify a single subscription ID. If omitted, all subscriptions (observing `--status` if set) are backed up.
-* Type: integer
-* Default: null
-
-##### `--status=<subscription_status>`
-> Specify a subscription status. If omitted, all subscriptions are processed. See [WooCommerce Subscrptions documentation](https://woocommerce.com/document/subscriptions/develop/action-reference/#subscription-status-change-actions) for valid subscription statuses to use.
-* Type: string
-* Default: `any`
-
-### `restore`
-```
-wp wcsr restore --file=<filename> [--delete]
-```
-
-Restore subscription data from a previously created backup file.
-
-##### `--file=<filename>`
-**Required.** Specify the SQL dump of subscriptions that will be restored (located in wp-content directory).
-* Type: string
-
-##### `--delete`
-Deletes the file once restored from. Note: Does not confirm successful restoration in case of database issue or other error.
-* Type: boolean
-* Default: unset
-
-### `update`
-```
-wp wcsr update [--dry-run] [--id=<subscription_id>] [--status=<subscription_status>]
-```
-Update WC Subscriptions to match current product prices, taking into account VAT/tax if in use.
-
-##### `--dry-run`
-Perform a dry run without writing changes to the database (you may find this useful if you want to test if your store's VAT/tax settings are correctly applied here).
-* Type: boolean
-* Default: unset
-
-##### `--id=<subscription_id>`
-> Specify a single subscription ID. If omitted, all subscriptions (observing `--status` if set) are processed.
-* Type: integer
-* Default: null
-
-##### `--status=<subscription_status>`
-> Specify a single subscription status. If omitted, all subscriptions are processed. See [WooCommerce Subscrptions documentation](https://woocommerce.com/document/subscriptions/develop/action-reference/#subscription-status-change-actions) for valid subscription statuses to use.
-* Type: string
-* Default: `any`
-
-## Backward Compatibility
-
-For backward compatibility, the legacy command names are still supported:
-- `wp wcsr backup` → Use `wp wcsr create` instead
-- `wp wcsr recalculate` → Use `wp wcsr update` instead
+*This README.md is generated dynamically from the project's codebase using `wp scaffold package-readme` ([doc](https://github.com/wp-cli/scaffold-package-command#wp-scaffold-package-readme)). To suggest changes, please submit a pull request against the corresponding part of the codebase.*

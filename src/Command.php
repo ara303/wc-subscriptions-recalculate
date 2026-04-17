@@ -1,21 +1,20 @@
 <?php
-/**
- * Plugin Name: WC Subscriptions Recalculate
- * Version: 1.180925
- * Description: Bulk update existing WooCommerce Subscriptions when the prices of products change, via WP-CLI commands.
- * Author: ara303
- * Author URI: http://github.com/ara303
- * Tested up to: 6.8.2
- */
-if ( ! defined( 'WP_CLI' ) ) {
-    return;
-}
 
-class WC_Subscriptions_Recalculate {
+namespace WP_CLI\WCSRecalculate;
+
+use WP_CLI;
+use WP_CLI_Command;
+
+class Command extends WP_CLI_Command {
     private $backup_file;
 
     public function __construct() {
         $this->backup_file = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'wcsr_backup_' . date('Y-m-d_H-i-s') . '.sql';
+
+		if( ! class_exists( 'WC_Subscriptions' ) ){
+			WP_CLI::error( "WooCommerce Subscriptions not installed or not found." );
+			return;
+		}
     }
 
     /**
@@ -26,6 +25,7 @@ class WC_Subscriptions_Recalculate {
      * @return array Array of subscription objects
      */
     private function get_subscriptions( $subscription_id, $subscription_status ){
+
         if( $subscription_id ){
             $subscriptions = array( wcs_get_subscription( $subscription_id ) );
         } else {
@@ -123,15 +123,17 @@ class WC_Subscriptions_Recalculate {
                     continue;
                 }
 
-                $tax_rates = WC_Tax::get_rates( $product->get_tax_class() );
-                $taxes     = WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );
-                $new_price + array_sum( $taxes );
+                $tax_rates = \WC_Tax::get_rates( $product->get_tax_class() );
+                $taxes     = \WC_Tax::calc_tax( $new_price, $tax_rates, wc_prices_include_tax() );
+                $new_price += array_sum( $taxes );
 
-                if( ! $dry_run ){
-                    $item->set_taxes([
-                        'total'    => $taxes,
-                        'subtotal' => $taxes
-                    ]);
+                if ( ! $dry_run ) {
+                    if ( ! empty( $taxes ) ) {
+                        $item->set_taxes([
+                            'total'    => $taxes,
+                            'subtotal' => $taxes
+                        ]);
+                    }
                     $item->set_subtotal( $new_price );
                     $item->set_total( $new_price );
                     $item->save();
@@ -294,10 +296,3 @@ class WC_Subscriptions_Recalculate {
         }
     }
 }
-
-$wcsr = new WC_Subscriptions_Recalculate();
-WP_CLI::add_command("wcsr update", [$wcsr, 'update']);
-WP_CLI::add_command("wcsr create", [$wcsr, 'create']);
-WP_CLI::add_command("wcsr restore", [$wcsr, 'restore']);
-WP_CLI::add_command("wcsr recalculate", [$wcsr, 'update']);
-WP_CLI::add_command("wcsr backup", [$wcsr, 'create']);
