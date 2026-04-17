@@ -1,16 +1,17 @@
 #### Prerequisites
 
-- WP-CLI 2.13 or newer 
+- WP-CLI >=2.13 
 
-_Note:_ WP-CLI 2.12 ships with WP versions >7.0. Get 2.13+ by running `wp cli update --nightly`.
+_Note:_ WP <7.0 does not have WP-CLI 2.13. Install manually: `wp cli update --nightly`.
 
 ### As package
 
-As of release version 1.0.0 (stable), this is now installable as a WordPress package.
+As of 1.0.0 release, install as a WordPress package:
 
-1. In WP-CLI, run: `wp package install ara303/wc-subscriptions-recalculate`
-3. See [Using](#using)
+~~~
+wp package install ara303/wc-subscriptions-recalculate
+~~~
 
-### Use as MU-Plugin
+### As MU-Plugin (unsupported)
 
-If you really want, take the contents of `src/Command.php` and put it into your own MU-Plugin (warning: unsupported).
+If you really want, take the contents of `src/Command.php` and put it into your own MU-Plugin.

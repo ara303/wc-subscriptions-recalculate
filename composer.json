@@ -1,10 +1,9 @@
 {
     "name": "ara303/wc-subscriptions-recalculate",
-    "version": "1.0.0",
     "type": "wp-cli-package",
     "description": "Recalculate WooCommerce Subscriptions in bulk for existing subscriptions (via WP-CLI)",
     "homepage": "https://github.com/ara303/woocommerce-subscriptions-recalculate",
-    "license": "MIT",
+    "license": "GPL-2.0-only",
     "authors": [],
     "require": {
         "wp-cli/wp-cli": "^2.13"
@@ -26,22 +25,21 @@
         },
         "bundled": false,
         "commands": [
-            "wcsr"
+            "wcsr update",
+            "wcsr create",
+            "wcsr restore"
         ],
         "readme": {
             "sections": [
-                "Installing",
                 "Using",
-                "Support"
+                "Installing",
+                "Notes"
             ],
             "installing": {
                 "body": "docs/installing.md"
             },
-            "using": {
-                "body": "docs/using.md"
-            },
-            "support": {
-                "body": "docs/support.md"
+            "notes": {
+                "body": "docs/notes.md"
             }
         }
     },
